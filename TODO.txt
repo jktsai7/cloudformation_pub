@@ -1,0 +1,7 @@
+To decide a web application stack consisting of the following AWS resources:
+Amazon Virtual Private Cloud (VPC): A custom VPC to isolate the resources.
+Amazon EC2 Instances: Deploy one or more EC2 instances to host the web application.
+Amazon RDS Database (Optional): Include an RDS instance if your application requires a database.
+Amazon Security Groups: Configure security groups to control inbound and outbound traffic.
+Amazon Elastic Load Balancer (ALB): Set up an Application Load Balancer to distribute traffic.
+Amazon Route 53 (Optional): Register a domain and configure DNS records.

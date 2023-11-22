@@ -1,0 +1,10 @@
+# requirement
+pip3 install cfn-lint
+pip3 install pydot
+# tools
+## vscode extension
+### cfn-lint
+https://marketplace.visualstudio.com/items?itemName=kddejong.vscode-cfn-lint
+
+ which cfn-lint                                                                                                                            130 ↵
+/opt/homebrew/bin/cfn-lint

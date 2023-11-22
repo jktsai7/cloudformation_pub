@@ -35,6 +35,8 @@ Resources:
       VpcId: !Ref VPC
       InternetGatewayId: !Ref InternetGateway
 
+# Define the Public Subnets
+
   PublicSubnet1:
     Type: AWS::EC2::Subnet
     Properties:
@@ -84,6 +86,69 @@ Resources:
       SubnetId: !Ref PublicSubnet2
       RouteTableId: !Ref PublicRouteTable
 
+# Define the Private Subnets
+  PrivateSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.2.0/24
+      AvailabilityZone: "us-east-1a"
+      Tags:
+        - Key: Name
+          Value: Private Subnet 1
+
+  PrivateSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.4.0/24
+      AvailabilityZone: "us-east-1b"
+      Tags:
+        - Key: Name
+          Value: Private Subnet 2
+
+# Private Route Table
+  PrivateRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: Private Route Table
+
+# Route for Private Route Table to NAT Gateway
+  PrivateRoute:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref NatGateway
+
+  # Associate the private subnets with the Private Route Table
+  PrivateSubnetRouteTableAssociation1:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PrivateSubnet1
+      RouteTableId: !Ref PrivateRouteTable
+
+  PrivateSubnetRouteTableAssociation2:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PrivateSubnet2
+      RouteTableId: !Ref PrivateRouteTable
+
+  # NAT Gateway
+  NatGateway:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId: !GetAtt ElasticIP.AllocationId
+      SubnetId: !Ref PublicSubnet1 # Assuming PublicSubnet1 is a public subnet
+
+  ElasticIP:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+
   # Security Groups
   ELBSecurityGroup:
     Type: AWS::EC2::SecurityGroup
@@ -119,25 +184,6 @@ Resources:
       InstanceType: t2.micro
       SecurityGroupIds:
         - !Ref EC2SecurityGroup
-      SubnetId: !Ref PublicSubnet2
-      KeyName: !Ref KeyName
-      UserData:
-        Fn::Base64: |
-          #!/bin/bash
-          yum update -y
-          yum install -y nginx
-          systemctl start nginx
-          systemctl enable nginx
-          echo '<h1>Welcome to Nginx on AWS EC2 on PublicSubnet2!</h1>' > /usr/share/nginx/html/index.html
-
-
-  EC2Instance2:
-    Type: AWS::EC2::Instance
-    Properties:
-      ImageId: ami-0230bd60aa48260c6  # Replace with the correct AMI ID for your region and OS
-      InstanceType: t2.micro
-      SecurityGroupIds:
-        - !Ref EC2SecurityGroup
       SubnetId: !Ref PublicSubnet1
       KeyName: !Ref KeyName
       UserData:
@@ -148,6 +194,25 @@ Resources:
           systemctl start nginx
           systemctl enable nginx
           echo '<h1>Welcome to Nginx on AWS EC2 on PublicSubnet1!</h1>' > /usr/share/nginx/html/index.html
+
+
+  EC2Instance2:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: ami-0230bd60aa48260c6  # Replace with the correct AMI ID for your region and OS
+      InstanceType: t2.micro
+      SecurityGroupIds:
+        - !Ref EC2SecurityGroup
+      SubnetId: !Ref PrivateSubnet2
+      KeyName: !Ref KeyName
+      UserData:
+        Fn::Base64: |
+          #!/bin/bash
+          yum update -y
+          yum install -y nginx
+          systemctl start nginx
+          systemctl enable nginx
+          echo '<h1>Welcome to Nginx on AWS EC2 on PrivateSubnet2!</h1>' > /usr/share/nginx/html/index.html
 
 
   # Application Load Balancer
@@ -196,9 +261,3 @@ Outputs:
   LoadBalancerDNSName:
     Description: DNS Name of the Application Load Balancer
     Value: !GetAtt ApplicationLoadBalancer.DNSName
-  EC2Instance1PublicIP:
-    Description: Public IP Address of EC2 Instance 1
-    Value: !GetAtt EC2Instance1.PublicIp
-  EC2Instance2PublicIP:
-    Description: Public IP Address of EC2 Instance 2
-    Value: !GetAtt EC2Instance2.PublicIp
